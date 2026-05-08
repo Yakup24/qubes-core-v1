@@ -1,10 +1,37 @@
 # Personal Qubes Core Agent Fork
 
+[![Tests](https://github.com/Yakup24/qubes-core-v1/actions/workflows/tests.yml/badge.svg)](https://github.com/Yakup24/qubes-core-v1/actions/workflows/tests.yml)
+[![License: GPL v2 or later](https://img.shields.io/badge/License-GPL_v2_or_later-blue.svg)](LICENSE)
+
 This is a hardened personal fork of `qubes-core-agent-linux`.
 
 The project still follows the original Qubes OS agent layout, but this copy is
 tuned for easier local inspection, safer firewall rule handling, and more
 deterministic tests outside a full Qubes VM.
+
+License: GNU General Public License v2.0 or later.
+
+## Upstream Base
+
+This repository is based on QubesOS/qubes-core-agent-linux.
+
+Upstream project:
+https://github.com/QubesOS/qubes-core-agent-linux
+
+This fork focuses on:
+
+- stricter firewall rule validation
+- safer handling of rule inputs
+- deterministic unit tests outside a full Qubes VM
+- small maintainability improvements
+
+This is not an official Qubes OS component.
+
+## Warning
+
+This repository contains security-sensitive VM agent code. Do not use this fork
+in a production or daily Qubes environment without reviewing the changes,
+running the test suite, and testing inside a disposable Qubes VM.
 
 ## What Changed
 
@@ -41,6 +68,5 @@ short review checklist before publishing or testing this inside a VM.
 
 ## Notes
 
-This repository contains security-sensitive VM agent code. Keep behavior
-changes small, test them, and review firewall/RPC changes with extra care
-before using them in a real Qubes environment.
+Keep behavior changes small, test them, and review firewall/RPC changes with
+extra care before using them in a real Qubes environment.
