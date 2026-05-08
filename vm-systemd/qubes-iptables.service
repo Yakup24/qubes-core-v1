@@ -1,0 +1,10 @@
+[Unit]
+Description=Qubes base firewall settings
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/qubes/init/qubes-iptables start
+
+[Install]
+WantedBy=basic.target

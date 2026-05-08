@@ -1,0 +1,24 @@
+#!/bin/sh
+# Try to find a terminal emulator that's installed and run it.
+
+is_command() {
+    # bogus warning from ShellCheck < 0.5.0
+    # shellcheck disable=SC2039
+    type "$1" >/dev/null 2>&1
+}
+
+if is_command x-terminal-emulator; then
+    exec x-terminal-emulator
+fi
+
+if is_command gnome-terminal; then
+    exec qubes-run-gnome-terminal
+fi
+
+for terminal in xfce4-terminal konsole urxvt rxvt termit terminator Eterm aterm roxterm termite lxterminal mate-terminal terminology st xterm; do
+    if is_command "$terminal" ; then
+        exec "$terminal"
+    fi
+done
+
+echo "ERROR: No suitable terminal found." >&2

@@ -1,0 +1,11 @@
+rpm/*
+deb/*
+*.pyc
+*.pyo
+*~
+*.o
+.coverage
+*.egg-info
+__pycache__
+debian/changelog.*
+pkgs

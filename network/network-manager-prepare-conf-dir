@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# Source Qubes library.
+# shellcheck source=init/functions
+. /usr/lib/qubes/init/functions
+
+NM_CONFIG_DIR=/etc/NetworkManager/system-connections
+if [ -d $NM_CONFIG_DIR ] && [ ! -h $NM_CONFIG_DIR ]; then
+    mkdir -p /rw/config/NM-system-connections
+    mv $NM_CONFIG_DIR/* /rw/config/NM-system-connections/ 2> /dev/null || true
+    rmdir $NM_CONFIG_DIR
+    ln -s /rw/config/NM-system-connections $NM_CONFIG_DIR
+fi
+
+# Do not manage xen-provided network devices
+unmanaged_devices=mac:fe:ff:ff:ff:ff:ff
+#for mac in `xenstore-ls device/vif | grep mac | cut -d= -f2 | tr -d '" '`; do
+#    unmanaged_devices="$unmanaged_devices;mac:$mac"
+#done
+sed -r -i -e "s/^#?unmanaged-devices=.*/unmanaged-devices=$unmanaged_devices/" /etc/NetworkManager/NetworkManager.conf
+sed -r -i -e "s/^#?plugins=.*/plugins=keyfile/" /etc/NetworkManager/NetworkManager.conf
+
+# setup uplink configuration if applicable - this needs to be done before
+# starting NetworkManager, otherwise it will try default DHCP configuration
+# first and only after a timeout fallback to static one - introducing delay in
+# network connectivity
+ACTION="add"
+INTERFACE="$(get_qubes_managed_iface)"
+export ACTION
+export INTERFACE
+if qubesdb-read /qubes-ip >/dev/null 2>/dev/null &&
+        [ -e "/sys/class/net/$INTERFACE" ] &&
+        [ ! -r "/etc/NetworkManager/system-connections/qubes-uplink-$INTERFACE" ]; then
+    /usr/lib/qubes/setup-ip
+fi
+
+exit 0

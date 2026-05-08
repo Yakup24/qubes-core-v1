@@ -1,0 +1,67 @@
+#!/bin/bash
+# shellcheck disable=SC2016
+
+# send .desktop files from directories persisting across VM restarts, specifically:
+#  - any directory in case of "full" persistence
+#  - directories stored on /rw in case of "rw-only" persistence
+#  - nothing, otherwise
+
+# Reload scripts in /etc/profile.d/, in case they register additional
+# directories in XDG_DATA_DIRS and we forgot them
+# (e.g. because we are running under sudo).
+for i in /etc/profile.d/*.sh ; do
+    if [ -r "$i" ]; then
+        # shellcheck disable=SC1090
+        . "$i" >/dev/null
+    fi
+done
+
+if [ -z "$XDG_DATA_HOME" ]; then
+    user="$(whoami)"
+    # In case we are running under sudo, use default-user.
+    if [ "$user" = "root" ]; then
+        user="$(qubesdb-read /default-user || echo user)"
+    fi
+    home="$(eval echo "~$user")"
+    XDG_DATA_HOME="$home/.local/share"
+fi
+if [ -z "$XDG_DATA_DIRS" ]; then
+    XDG_DATA_DIRS="/usr/local/share/:/usr/share/"
+fi
+
+# if read fails for some reason, default to full
+persistence=$(qubesdb-read /qubes-vm-persistence || echo full)
+rw_devno=$(stat -c %D /rw)
+
+apps_dirs_to_consider=( "$XDG_DATA_HOME" )
+old_IFS="$IFS"
+IFS=:
+# shellcheck disable=SC2206
+apps_dirs_to_consider+=( $XDG_DATA_DIRS )
+IFS="$old_IFS"
+
+apps_dirs=()
+for dir in "${apps_dirs_to_consider[@]}"; do
+    if [ "$persistence" = "full" ]; then
+        apps_dirs+=( "$dir/applications" )
+    elif [ "$persistence" = "rw-only" ] && \
+            [ "$(stat -c %D "$dir")" = "$rw_devno" ]; then
+        apps_dirs+=( "$dir/applications" )
+    fi
+done
+
+if [ "${#apps_dirs[@]}" -eq "0" ]; then
+    # nothing to send, exit early to not let `find` browse the current
+    # directory
+    exit 0
+fi
+
+find "${apps_dirs[@]}" -name '*.desktop' -print0 2>/dev/null | \
+         xargs -0 awk '
+         BEGINFILE { if (ERRNO) nextfile; entry="" }
+         /^\[/ { if (tolower($0) != "\[desktop entry\]") nextfile } 
+         /^Exec *=/ { entry = entry FILENAME ":Exec=qubes-desktop-run " FILENAME "\n"; next }
+         /^NoDisplay *= *true$/ { entry=""; nextfile }
+         /=/ { entry = entry FILENAME ":" $0 "\n" }
+         ENDFILE { print entry }
+         ' 2> /dev/null

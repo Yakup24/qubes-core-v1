@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if [ -r /etc/profile.d/qubes-session.sh ]; then
+    # shellcheck disable=SC1091
+    . /etc/profile.d/qubes-session.sh
+fi
+
+# gvfs-open, kde-open, and possibly others don't wait for editor to be
+# closed, which is critical behaviour for DisposableVM (which gets destroyed
+# after this process exits)
+export DE=generic
+exec xdg-open "$@"
